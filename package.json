@@ -1,0 +1,16 @@
+{
+  "name": "canopy",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Canopy coordination engine: public site + Google Apps Script/Sheets backend",
+  "scripts": {
+    "build": "node scripts/build.js",
+    "start": "node local/server.js",
+    "demo": "node local/server.js --fresh",
+    "test": "node scripts/build.js && node --test tests/core.test.js tests/gas.test.js",
+    "test:e2e": "node scripts/build.js && node --test tests/e2e.test.js",
+    "test:all": "npm test && npm run test:e2e",
+    "check-build": "node scripts/build.js && git diff --exit-code -- apps-script/dist site/js/canopy-core.js site/r site/join"
+  },
+  "engines": { "node": ">=18" }
+}
