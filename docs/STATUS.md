@@ -29,6 +29,15 @@ All of the items below are covered by 39 engine and Apps Script tests and 7 brow
 - **Backups.** Weekly JSON to Drive, plus a copy of the public data.
 - **Site.** Phone-sized layout with no sideways scroll, keyboard access, a skip link, visible focus, and an error summary that is focused and announced. There are honest empty states, "Join link coming soon" when no link is set, and the stable `/join` and `/r/1…10` routes.
 
+## Live checks (November 14, 2026)
+
+- The Apps Script engine is deployed as canopy@decarbondekalb.com, and `?action=health` returns ok.
+- The public data returns empty, which is correct because every record is still a draft.
+- A test submission was saved, and repeating it exactly returned the same reference without creating a second record.
+- The engine sends cross-site permission headers (`Access-Control-Allow-Origin: *`), so the hosted site will be able to call it.
+- The 3 triggers are installed, and the 15-minute notification check has run.
+- `site/js/config.js` now points at the live engine.
+
 ## Simulated or demo only
 
 - **No real email has been sent.** Every notification in testing was `simulated`, or went to a mocked MailApp.

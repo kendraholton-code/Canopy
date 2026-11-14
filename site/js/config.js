@@ -7,7 +7,7 @@
  *   "https://script.google.com/macros/s/XXXX/exec" → the live Apps Script web app
  */
 window.CANOPY_CONFIG = {
-  API_URL: 'demo',
+  API_URL: 'https://script.google.com/macros/s/AKfycbzqxNL2Y2UrW1cBz3jVyeyS6ucoCGRDMatt7oulC7OsiztXK945NkrVIHT-cLxZzwR6uw/exec',
   // Shown if the live service cannot be reached.
   FALLBACK_MESSAGE: 'The Canopy service is not reachable right now. Please try again shortly.'
 };
