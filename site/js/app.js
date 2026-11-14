@@ -168,7 +168,7 @@
     }
     if (acts.length) {
       out += '<h2>Action items</h2><ul class="plain">' + acts.map(function (a) {
-        return '<li><strong>' + h(a.description) + '</strong>' + demoBadge(a) + '<br><span class="meta">Owner: ' + h(a.owner_display) + ' · Status: ' + h(a.progress || 'open') + (a.due_date ? ' · Due: ' + h(a.due_date) : '') + '</span>' + (a.next_step ? '<br><span class="small">Next step: ' + h(a.next_step) + '</span>' : '') + '</li>';
+        return '<li><strong>' + h(a.description) + '</strong>' + demoBadge(a) + '<br><span class="meta">Owner: ' + h(a.owner_display) + ' · Status: ' + h(a.progress || 'open') + (a.due_date ? ' · Due: ' + h(a.due_date) : '') + '</span>' + (a.next_step ? '<br><span class="small">Next step: ' + h(a.next_step) + '</span>' : '') + '<br><a class="small" href="#/forms/item?id=' + encodeURIComponent(a.id) + '">Post an update on this item</a></li>';
       }).join('') + '</ul>';
     }
     if (ups.length) {
@@ -342,6 +342,12 @@
     var out = '<h1>Collaborations &amp; requests</h1><p>Offers, needs and opt-in collaborations. Listing an idea here does not make it an active project — each shows its owner, status and next step.</p>' +
       '<p class="row"><a class="btn" href="#/forms/update">Share an offer or need</a></p><p class="row" role="group" aria-label="Filter by type">' +
       ['', 'offer', 'need', 'collaboration'].map(function (k) { return '<a class="btn small' + (k === kind ? '' : ' secondary') + '" href="#/collaborate' + (k ? '?kind=' + k : '') + '"' + (k === kind ? ' aria-current="true"' : '') + '>' + (k ? label[k] + 's' : 'All') + '</a>'; }).join('') + '</p>';
+    var openItems = (snap.action_items || []).filter(function (a) { return a.progress !== 'done' && a.progress !== 'dropped'; });
+    if (openItems.length && !kind) {
+      out += '<h2>Open action items</h2><p class="muted">From the monthly calls. Working on one? Post an update — no account needed.</p><ul class="plain">' + openItems.map(function (a) {
+        return '<li><strong>' + h(a.description) + '</strong>' + demoBadge(a) + '<br><span class="meta">Owner: ' + h(a.owner_display) + ' · Status: ' + h((a.progress || 'open').replace('_', ' ')) + '</span>' + (a.next_step ? '<br><span class="small">Next step: ' + h(a.next_step) + '</span>' : '') + '<br><a class="small" href="#/forms/item?id=' + encodeURIComponent(a.id) + '">Post an update on this item</a></li>';
+      }).join('') + '</ul><h2>Offers, needs and collaborations</h2>';
+    }
     out += list.length ? list.map(function (x) {
       var g = x.group_id && groupById(x.group_id);
       return '<article class="card"><h2 style="margin-top:0;font-size:1.15rem"><span class="badge">' + h(label[x.kind] || x.kind) + '</span> ' + h(x.title) + demoBadge(x) + '</h2><p>' + h(x.description) + '</p><p class="meta">Owner: ' + h(x.owner_display) + ' · Status: ' + h(x.progress || 'open') + (g ? ' · Group: <a href="#/rooms/' + h(g.slot) + '">' + h(g.label) + '</a>' : '') + '</p>' + (x.next_step ? '<p class="small"><strong>Next step:</strong> ' + h(x.next_step) + '</p>' : '') + (x.contact_public ? '<p class="small">Contact: ' + h(x.contact_public) + '</p>' : '') + '</article>';
@@ -444,6 +450,20 @@
         { name: 'ask_offer', label: 'One ask or offer (optional)', type: 'textarea' },
         { name: 'link', label: 'Related link (optional)', type: 'url' },
         { name: 'consent_publish', label: 'You may publish this update in the public recap.', type: 'checkbox' }
+      ];
+    }
+  };
+  FORMS.item = {
+    title: 'Update an action item', type: 'item_update', submitLabel: 'Send update', intro: 'Share progress on an item from a monthly call. A steward reviews updates before they appear.',
+    fields: function (q) {
+      var a = (snap.action_items || []).filter(function (x) { return x.id === q.id; })[0];
+      return [
+        { name: 'item_id', label: 'Action item', type: 'select', required: true, value: q.id || '', options: [['', 'Choose…']].concat((snap.action_items || []).map(function (x) { return [x.id, x.description.slice(0, 80)]; })) },
+        { name: 'progress', label: 'Status', type: 'select', value: a ? a.progress : '', options: [['', 'No change'], ['open', 'Open'], ['in_progress', 'In progress'], ['done', 'Done'], ['dropped', 'No longer happening']] },
+        { name: 'next_step', label: 'Next step (optional)', type: 'text', hint: 'Replaces the next step shown on the site.' },
+        { name: 'note', label: 'Note for the facilitator (optional)', type: 'textarea' },
+        { name: 'name', label: 'Your name', type: 'text', required: true, autocomplete: 'name' },
+        { name: 'email', label: 'Email for a reply (optional, private)', type: 'email', autocomplete: 'email' }
       ];
     }
   };

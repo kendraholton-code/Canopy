@@ -1506,6 +1506,44 @@
     return { ok: true, status: 'received', reference: up.id, refs: ['Updates:' + up.id, 'People:' + person.id], message: 'Thanks! Your update was received for the next call' + (fac ? ' and sent to the facilitator.' : '. No facilitator is assigned yet; it will be reviewed when the agenda is prepared.') };
   };
 
+  /** A collaborator proposes a progress update on a published action item (no Sheet access needed). */
+  handlers.item_update = function (store, ctx, p, sub, settings) {
+    var errors = {};
+    var item = store.get('ActionItems', U.str(p.item_id));
+    if (!item || item.status !== 'approved') errors.item_id = 'That action item could not be found.';
+    if (!U.str(p.name)) errors.name = 'Please tell us who is sending the update.';
+    if (p.email && !U.isEmail(p.email)) errors.email = 'Not a valid email.';
+    var progress = U.str(p.progress);
+    if (progress && ['open', 'in_progress', 'done', 'dropped'].indexOf(progress) < 0) errors.progress = 'Choose a status from the list.';
+    if (!progress && !U.str(p.next_step) && !U.str(p.note)) errors.note = 'Share a status, a next step or a short note.';
+    if (Object.keys(errors).length) return fail(errors);
+    var changes = {};
+    if (progress && progress !== item.progress) changes.progress = progress;
+    if (U.str(p.next_step) && U.str(p.next_step) !== U.str(item.next_step)) changes.next_step = U.clip(p.next_step, 400);
+    var cor = store.insert('Corrections', {
+      id: U.makeId('cor', ctx), received_at: U.nowIso(ctx), record_ref: 'ActionItems:' + item.id,
+      description: 'Progress update from ' + U.clip(p.name, 120) + (p.note ? ': ' + U.clip(p.note, 1000) : ''),
+      proposed_changes: Object.keys(changes).length ? JSON.stringify(changes) : '',
+      requester_name: U.clip(p.name, 120), requester_email: U.normEmail(p.email), state: 'open'
+    });
+    var steward = C.roleEmail(store, 'facilitator') || C.roleEmail(store, 'communications_steward');
+    if (steward) {
+      C.queueNotification(store, ctx, {
+        kind: 'item_update', to: steward, subject: '[Canopy] Update on: ' + U.clip(item.description, 80), related: 'Corrections:' + cor.id, dedupe_key: 'review:' + cor.id,
+        body: 'Action item: ' + item.description + '\nCurrent status: ' + (item.progress || 'open') + '\n\nUpdate from ' + U.clip(p.name, 120) + ':\n' +
+          (changes.progress ? 'New status: ' + changes.progress + '\n' : '') + (changes.next_step ? 'Next step: ' + changes.next_step + '\n' : '') + (p.note ? 'Note: ' + U.clip(p.note, 1000) + '\n' : '') +
+          '\nTo publish it: Canopy Admin → Corrections tab → select this row → Canopy → Apply selected correction.'
+      });
+    }
+    if (U.isEmail(p.email)) {
+      C.queueNotification(store, ctx, { kind: 'acknowledgement', to: p.email, subject: '[Canopy] Update received', related: 'Corrections:' + cor.id, dedupe_key: 'ack:' + cor.id, body: 'Thanks — your update on “' + item.description + '” was received and will appear on the site after a quick review.' });
+    }
+    return {
+      ok: true, status: 'pending_review', reference: cor.id, refs: ['Corrections:' + cor.id],
+      message: 'Thanks! Your update was received and will appear after a quick review' + (steward ? ' (the facilitator has been notified).' : '. No facilitator is assigned yet, so it will be reviewed before the next call.')
+    };
+  };
+
   handlers.correction = function (store, ctx, p, sub, settings) {
     var errors = {};
     if (!U.str(p.description)) errors.description = 'What should be corrected or removed?';

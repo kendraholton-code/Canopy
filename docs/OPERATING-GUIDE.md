@@ -52,6 +52,15 @@ You can also simply type in cells. Changing `status` to `approved` stamps your n
 - Events disappear from "upcoming" once they've ended, but stay in history.
 - A weekly backup runs Monday at 3 a.m.
 
+## Action-item updates from collaborators
+
+Collaborators don't need the Sheet. Every published action item on the site has a **"Post an update on this item"** link. These appear on the meeting page and under **Collaborations & requests → Open action items**.
+
+1. A collaborator picks a status, adds a next step or note, and gives their name.
+2. Their update arrives as a row in the **Corrections** tab, and the facilitator gets an email.
+3. To publish it, select that row → **Canopy → Apply selected correction**. The item updates on the site.
+4. If an update only contains a note, read it and set the Corrections row's `state` to `resolved`.
+
 ## Groups: the two enrollment modes
 
 - `contact_led` (the default): the request goes to the contact. The person becomes `active` only after the contact welcomes them.

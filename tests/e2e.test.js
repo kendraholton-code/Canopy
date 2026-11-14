@@ -210,6 +210,27 @@ test('empty and not-found states; meetings search; screenshots', async () => {
   await context.close();
 });
 
+
+test('collaborator updates an action item from a phone; steward applies it', async () => {
+  const { context, page } = await phone();
+  await page.goto(BASE + '#/collaborate');
+  await page.getByRole('heading', { name: 'Open action items' }).waitFor();
+  await page.locator('a[href="#/forms/item?id=act-2026-11-14-4"]').first().click();
+  await page.locator('#f-progress').selectOption('in_progress');
+  await page.locator('#f-next_step').fill('Sheet shared with fixers');
+  await page.locator('#f-name').fill('Ava');
+  await page.getByRole('button', { name: 'Send update' }).click();
+  await page.locator('#form-result').getByText(/quick review/).waitFor();
+  const t = (await steward('list')).tables;
+  const cor = t.Corrections.find((c) => c.record_ref === 'ActionItems:act-2026-11-14-4');
+  await steward('applyCorrection', { id: cor.id });
+  await page.goto(BASE + '#/meetings/mtg-2026-11-14');
+  await page.reload();
+  await page.getByText('Next step: Sheet shared with fixers').waitFor();
+  await noHorizontalScroll(page);
+  await context.close();
+});
+
 test('public API privacy self-check passes after all of the above', async () => {
   const r = await steward('privacy');
   assert.deepEqual(r, { ok: true, leaks: [] });

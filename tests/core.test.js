@@ -488,3 +488,24 @@ test('portable SHA-256 matches Node crypto', () => {
     assert.equal(C.util.sha256(v), crypto.createHash('sha256').update(v, 'utf8').digest('hex'));
   });
 });
+
+test('collaborators post action-item updates without Sheet access; a steward applies them', () => {
+  const ctx = makeCtx();
+  const s = demo(ctx);
+  const id = 'act-2026-11-14-4';
+  const bad = C.handlePost(s, ctx, { action: 'submit', type: 'item_update', item_id: id, name: '' }, null).body;
+  assert.equal(bad.ok, false);
+  const r = C.handlePost(s, ctx, { action: 'submit', type: 'item_update', item_id: id, name: 'Ava', email: 'ava.private@example.org', progress: 'in_progress', next_step: 'Sheet shared with 6 fixers', note: 'Looking for a Genoa host' }, null).body;
+  assert.equal(r.status, 'pending_review');
+  assert.equal(s.get('ActionItems', id).progress, 'open', 'nothing public changes before review');
+  const n = notif(s, (x) => x.kind === 'item_update')[0];
+  assert.equal(n.to, 'facilitator@example.org');
+  assert.match(n.body, /Looking for a Genoa host/);
+  C.applyCorrection(s, ctx, 'facilitator', r.reference);
+  assert.equal(s.get('ActionItems', id).progress, 'in_progress');
+  assert.equal(s.get('ActionItems', id).next_step, 'Sheet shared with 6 fixers');
+  assert.ok(!JSON.stringify(C.buildPublicSnapshot(s, ctx)).includes('ava.private@example.org'));
+  // draft items cannot be updated from outside
+  s.update('ActionItems', id, { status: 'draft' });
+  assert.equal(C.handlePost(s, ctx, { action: 'submit', type: 'item_update', item_id: id, name: 'X', note: 'y' }, null).body.ok, false);
+});
