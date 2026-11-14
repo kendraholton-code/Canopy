@@ -28,13 +28,13 @@
     ActionItems: ['id', 'meeting_id', 'description', 'owner_display', 'due_date', 'progress', 'next_step', 'group_id'],
     Organizations: ['id', 'name', 'description', 'mission', 'website', 'public_email', 'locality', 'service_area', 'interests', 'offers', 'needs', 'logo_url', 'verification'],
     People: ['id', 'display_name', 'locality', 'interests'],
-    Events: ['id', 'title', 'organizer', 'organization_id', 'date', 'start_time', 'end_date', 'end_time', 'venue', 'city', 'county', 'online_url', 'source_url', 'registration_url', 'relevance', 'cost', 'accessibility'],
+    Events: ['id', 'title', 'organizer', 'organization_id', 'date', 'start_time', 'end_date', 'end_time', 'venue', 'city', 'county', 'online_url', 'source_url', 'registration_url', 'relevance', 'cost', 'accessibility', 'category', 'published_via'],
     Groups: ['id', 'slot', 'label', 'label_note', 'purpose', 'group_status', 'enrollment_mode', 'intake', 'convenor_display', 'public_contact', 'meet_url', 'notes_url', 'next_gathering', 'time_expectation', 'current_needs', 'room_convention'],
     Requests: ['id', 'kind', 'title', 'description', 'owner_display', 'group_id', 'organization_id', 'progress', 'next_step', 'contact_public'],
     Updates: ['id', 'meeting_id', 'display_name', 'org_display', 'update_text', 'upcoming_date', 'ask_offer', 'link']
   };
 
-  C.PUBLIC_SETTINGS = ['SITE_NAME', 'SITE_TAGLINE', 'ORG_FORM_URL', 'SITE_NOTICE', 'CORRECTIONS_EMAIL_PUBLIC', 'SUBMISSIONS_ENABLED', 'PLATFORM_NOTE'];
+  C.PUBLIC_SETTINGS = ['SITE_NAME', 'SITE_TAGLINE', 'ORG_FORM_URL', 'SITE_NOTICE', 'CORRECTIONS_EMAIL_PUBLIC', 'SUBMISSIONS_ENABLED', 'PLATFORM_NOTE', 'CAL_NAME', 'CAL_TAGLINE', 'CAL_OWNER_NOTE', 'CAL_NOTICE', 'CAL_CONTACT_EMAIL', 'SITE_URL', 'CALENDAR_URL'];
 
   function isPublic(row, showDemo) {
     if (U.str(row.status) !== 'approved') return false;
@@ -178,7 +178,8 @@
   };
 
   /** Public iCalendar feed: approved, public Canopy meetings and community events only. */
-  C.buildPublicIcs = function (store, ctx, which) {
+  C.buildPublicIcs = function (store, ctx, which, filters) {
+    filters = filters || {};
     var snap = C.buildPublicSnapshot(store, ctx);
     var items = [];
     if (which !== 'events') {
@@ -197,6 +198,8 @@
     }
     if (which !== 'meetings') {
       snap.events.forEach(function (e) {
+        if (filters.county && (filters.county === 'Online' ? !e.is_online : e.county !== filters.county)) return;
+        if (filters.category && e.category !== filters.category) return;
         items.push({
           uid: e.id,
           date: e.date,
@@ -210,7 +213,7 @@
         });
       });
     }
-    return T.buildIcs(items, 'Canopy — DeKalb County sustainability', snap.generated_at);
+    return T.buildIcs(items, U.str(snap.settings.CAL_NAME) || 'DeKalb County, Illinois Community Sustainability Calendar', snap.generated_at);
   };
 })(typeof globalThis !== 'undefined' ? globalThis : this);
 
@@ -227,7 +230,7 @@
     (snapObj.people || []).forEach(function (p) { (U.str(p.public_contact).match(/[^\s<>()]+@[^\s<>()]+/g) || []).forEach(function (e) { allowed[e.toLowerCase()] = 1; }); });
     (snapObj.groups || []).forEach(function (g) { (U.str(g.public_contact).match(/[^\s<>()]+@[^\s<>()]+/g) || []).forEach(function (e) { allowed[e.toLowerCase()] = 1; }); });
     var secrets = [];
-    store.list('People').forEach(function (p) { secrets.push(p.private_email, p.email_norm, p.accessibility_notes); });
+    store.list('People').forEach(function (p) { secrets.push(p.private_email, p.email_norm, p.accessibility_notes, p.publisher_key_hash); });
     store.list('Events').forEach(function (e) { secrets.push(e.submitter_email, e.manage_token_hash); });
     store.list('Groups').forEach(function (g) { secrets.push(g.contact_email, g.backup_email); });
     store.list('Roles').forEach(function (r) { secrets.push(r.email, r.backup_email); });

@@ -17,7 +17,7 @@
     params = params || {};
     var action = U.str(params.action) || 'public';
     if (action === 'public') return { type: 'json', body: C.buildPublicSnapshot(store, ctx) };
-    if (action === 'ics') return { type: 'ics', body: C.buildPublicIcs(store, ctx, U.str(params.which)) };
+    if (action === 'ics') return { type: 'ics', body: C.buildPublicIcs(store, ctx, U.str(params.which), { county: U.str(params.county), category: U.str(params.category) }) };
     if (action === 'token') return { type: 'json', body: C.tokenInfo(store, ctx, U.str(params.kind), U.str(params.t)) };
     if (action === 'health') {
       var s = C.settings(store);

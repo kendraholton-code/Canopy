@@ -25,6 +25,12 @@
     ['SITE_NOTICE', 'Prototype — content is draft until coalition stewards approve it.', 'Banner text on every page. Empty = no banner.'],
     ['CORRECTIONS_EMAIL_PUBLIC', '', 'Optional public email for corrections, shown in the footer.'],
     ['PLATFORM_NOTE', 'Canopy is coalition-led. DeCarbon DeKalb provides the Google Meet platform and shared technical infrastructure; it does not own, lead or govern Canopy. Candidate-support organizing happens elsewhere, outside this site and its rooms.', 'Shown in the footer.'],
+    ['CAL_NAME', 'DeKalb County, Illinois Community Sustainability Calendar', 'Name of the DeCarbon DeKalb community calendar.'],
+    ['CAL_TAGLINE', 'Community sustainability events across DeKalb County and northern Illinois.', 'Calendar tagline.'],
+    ['CAL_OWNER_NOTE', 'Anyone can submit an event. Trusted community groups publish directly; everything else is reviewed first. Questions or a problem with a listing? Use “Report a problem” below.', 'Shown in the calendar footer.'],
+    ['CAL_NOTICE', '', 'Optional banner on the calendar page.'],
+    ['CAL_CONTACT_EMAIL', 'canopy@decarbondekalb.com', 'Public email for calendar questions and problems (e.g. a shared DeCarbon inbox). Shown in the calendar footer.'],
+    ['CALENDAR_URL', '', 'Public calendar address, e.g. https://canopy.decarbondekalb.com/calendar/ (defaults to SITE_URL + /calendar/).'],
     ['BACKUP_FOLDER_ID', '', 'Drive folder for weekly backups (created automatically on first backup).'],
     ['BACKUP_KEEP', '26', 'How many weekly backups to keep.']
   ];
@@ -220,7 +226,7 @@
     ];
     evs.forEach(function (e) {
       if (store.get('Events', e[0])) return;
-      store.insert('Events', base(ctx, { id: e[0], title: e[1], organizer: e[2], date: e[3], start_time: e[4], end_time: e[5], venue: e[6], city: e[7], county: e[8], online_url: e[9], relevance: e[10], cost: e[11], accessibility: e[12], source_url: 'https://example.org/event', submitter_name: 'Demo submitter', submitter_email: 'submitter.private@example.org', demo: 'yes', verification: 'verified' }));
+      store.insert('Events', base(ctx, { category: e[0] === 'evt-demo-2' ? 'Native plants & nature' : e[0] === 'evt-demo-3' ? 'Volunteering & cleanups' : 'Repair & reuse', id: e[0], title: e[1], organizer: e[2], date: e[3], start_time: e[4], end_time: e[5], venue: e[6], city: e[7], county: e[8], online_url: e[9], relevance: e[10], cost: e[11], accessibility: e[12], source_url: 'https://example.org/event', submitter_name: 'Demo submitter', submitter_email: 'submitter.private@example.org', demo: 'yes', verification: 'verified' }));
       C.approve(store, ctx, actor, 'Events', e[0]);
     });
     C.cancel(store, ctx, actor, 'Events', 'evt-demo-4', 'Organizer unavailable (DEMO)');

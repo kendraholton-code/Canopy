@@ -20,8 +20,12 @@
     contact_publish: 'Publish the public contact I provided (never my private email unless I typed it there).'
   };
 
-  var COUNTIES = ['DeKalb', 'Kane', 'Kendall', 'LaSalle', 'Lee', 'Ogle', 'Boone', 'Winnebago', 'Online', 'Regional / multiple'];
+  // DeKalb first, then northern Illinois counties (alphabetical), then online/regional.
+  var COUNTIES = ['DeKalb', 'Boone', 'Bureau', 'Carroll', 'Cook', 'DuPage', 'Grundy', 'Henry', 'Jo Daviess', 'Kane', 'Kankakee', 'Kendall', 'Lake', 'LaSalle', 'Lee',
+    'Livingston', 'Marshall', 'McHenry', 'Ogle', 'Putnam', 'Stephenson', 'Whiteside', 'Will', 'Winnebago', 'Online', 'Regional / multiple'];
   C.COUNTIES = COUNTIES;
+  C.CATEGORIES = ['Energy & climate', 'Food & gardening', 'Native plants & nature', 'Repair & reuse', 'Waste & recycling', 'Water', 'Transportation',
+    'Learning & civic life', 'Volunteering & cleanups', 'Family & youth', 'Arts & community', 'Other'];
 
   function fail(errors, message) {
     return { ok: false, code: 'validation', errors: errors, message: message || 'Please check the highlighted fields.' };
@@ -313,6 +317,7 @@
     if (U.str(p.venue) && !U.str(p.city)) errors.city = 'Which city or town?';
     if (COUNTIES.indexOf(U.str(p.county)) < 0) errors.county = 'Choose a county (or Online).';
     if (!U.str(p.relevance)) errors.relevance = 'One sentence on how it connects to sustainability or resilience.';
+    if (p.category && C.CATEGORIES.indexOf(U.str(p.category)) < 0) errors.category = 'Choose a topic from the list.';
     if (p.source_url && !U.isHttpUrl(p.source_url)) errors.source_url = 'Links must start with https://';
     if (p.registration_url && !U.isHttpUrl(p.registration_url)) errors.registration_url = 'Links must start with https://';
     if (!U.str(p.submitter_name)) errors.submitter_name = 'Your name is required.';
@@ -330,6 +335,9 @@
     })[0];
     var token = U.newToken(ctx);
     var org = C.findOrgByName(store, p.organizer);
+    var publisher = C.findPublisher(store, p.publisher_key);
+    var keyRejected = !!U.str(p.publisher_key) && !publisher;
+    var trusted = !!publisher && !dup;
     var ev = store.insert('Events', {
       id: U.makeId('evt', ctx),
       title: U.clip(p.title, 160),
@@ -352,16 +360,26 @@
       submitter_email: U.normEmail(p.submitter_email),
       manage_token_hash: U.tokenHash(token),
       duplicate_of: dup ? dup.id : '',
-      status: 'pending',
+      category: C.CATEGORIES.indexOf(U.str(p.category)) >= 0 ? U.str(p.category) : 'Other',
+      published_via: trusted ? 'trusted publisher' : 'review',
+      status: trusted ? 'approved' : 'pending',
+      approved_by: trusted ? 'trusted publisher: ' + publisher.display_name : '',
+      approved_at: trusted ? U.nowIso(ctx) : '',
       visibility: 'public',
-      verification: 'self_reported',
+      verification: trusted ? 'verified' : 'self_reported',
       source_ref: sub.id,
       created_at: U.nowIso(ctx),
       updated_at: U.nowIso(ctx)
     });
+    if (trusted) C.audit(store, ctx, 'trusted publisher: ' + publisher.display_name, 'status:→approved', 'Events', ev.id, 'published directly');
     var manage = siteLink(settings, 'manage?t=' + token);
     var steward = C.roleEmail(store, 'events_steward');
-    if (steward) {
+    if (steward && trusted) {
+      C.queueNotification(store, ctx, {
+        kind: 'event_published', to: steward, subject: '[Calendar] Published by a trusted publisher: ' + ev.title, related: 'Events:' + ev.id, dedupe_key: 'review:' + ev.id,
+        body: publisher.display_name + ' published this event directly (trusted publisher).\n\n' + ev.title + '\n' + T.formatLongDate(ev.date) + ' ' + T.formatTime(ev.start_time) + '\nSource: ' + (ev.source_url || 'none given') + '\n\nNo action needed. To take it down: Events tab → select the row → Canopy → Unpublish.'
+      });
+    } else if (steward) {
       C.queueNotification(store, ctx, {
         kind: 'event_review', to: steward, subject: '[Canopy] Event to review: ' + ev.title, related: 'Events:' + ev.id, dedupe_key: 'review:' + ev.id,
         body: 'A community-calendar event is waiting for review' + (dup ? ' (possible duplicate of ' + dup.id + ')' : '') + '.\n\n' + ev.title + '\n' + T.formatLongDate(ev.date) + ' ' + T.formatTime(ev.start_time) + '\nOrganizer: ' + ev.organizer + '\nRelevance: ' + ev.relevance + '\nSource: ' + (ev.source_url || 'none given') + '\n\nApprove it in the Canopy Admin sheet → Events tab (select the row → Canopy menu → Approve).'
@@ -369,13 +387,16 @@
     }
     C.queueNotification(store, ctx, {
       kind: 'acknowledgement', to: p.submitter_email, subject: '[Canopy] Event received: ' + ev.title, related: 'Events:' + ev.id, dedupe_key: 'ack:' + ev.id,
-      body: 'Thanks — your event “' + ev.title + '” was received and is waiting for a steward to review it. It is not on the public calendar yet.\n\n' +
+      body: (trusted ? 'Thanks — your event “' + ev.title + '” is published on the calendar now.\n\n' : 'Thanks — your event “' + ev.title + '” was received and is waiting for a steward to review it. It is not on the public calendar yet.\n\n') +
         (steward ? '' : 'Note: no calendar steward is assigned yet, so review may take until the next monthly call.\n\n') +
         'To correct or cancel this event later, use this private link: ' + manage
     });
+    if (trusted) {
+      return { ok: true, status: 'published', reference: ev.id, refs: ['Events:' + ev.id], message: 'Published! Your event is on the calendar now. We emailed you a private link to correct or cancel it.' };
+    }
     return {
       ok: true, status: 'pending_review', reference: ev.id, refs: ['Events:' + ev.id],
-      message: 'Thanks! Your event was received and is pending review — it is not public yet.' + (steward ? ' A calendar steward has been notified.' : ' No calendar steward is assigned yet, so review may wait until the next monthly call.') + ' We emailed you a private link to correct or cancel it.'
+      message: (keyRejected ? 'Your publishing link wasn’t recognized, so this event will be reviewed first. ' : dup && publisher ? 'An event with this title and date already exists, so a steward will check it first. ' : '') + 'Thanks! Your event was received and is pending review — it is not public yet.' + (steward ? ' A calendar steward has been notified.' : ' No calendar steward is assigned yet, so review may wait until the next monthly call.') + ' We emailed you a private link to correct or cancel it.'
     };
   };
 

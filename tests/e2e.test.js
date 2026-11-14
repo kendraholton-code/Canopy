@@ -141,6 +141,7 @@ test('event: submission is pending, steward approves without code, cancellation 
   await page.locator('#f-venue').fill('Community room');
   await page.locator('#f-city').fill('Sandwich');
   await page.locator('#f-county').selectOption('DeKalb');
+  await page.locator('#f-category').selectOption('Repair & reuse');
   await page.locator('#f-relevance').fill('Mending keeps clothes in use.');
   await page.locator('#f-submitter_name').fill('Kim');
   await page.locator('#f-submitter_email').fill('kim.private@example.org');
@@ -228,6 +229,82 @@ test('collaborator updates an action item from a phone; steward applies it', asy
   await page.reload();
   await page.getByText('Next step: Sheet shared with fixers').waitFor();
   await noHorizontalScroll(page);
+  await context.close();
+});
+
+test('community calendar: list, week, month, event page, filters, embed', async () => {
+  const { context, page } = await phone();
+  await page.goto(BASE + 'calendar/');
+  await page.getByText('DeKalb County, Illinois Community Sustainability Calendar').first().waitFor();
+  assert.equal(await page.getByText(/from DeCarbon DeKalb/).count(), 0, 'no hosting announcement');
+  await page.locator('.ev-title', { hasText: 'Community Repair Café (DEMO)' }).waitFor();
+  assert.ok(await page.locator('.chip.canopy').first().isVisible(), 'Canopy calls included');
+  await noHorizontalScroll(page);
+  if (SHOTS) await page.screenshot({ path: path.join(SHOTS, 'cal-list-phone.png'), fullPage: true });
+  // filter: online only
+  await page.locator('.filter-panel summary').click();
+  await page.locator('select[name="county"]').selectOption('Online');
+  await page.getByRole('button', { name: 'Apply' }).click();
+  await page.waitForURL(/county=Online/);
+  await page.locator('.ev-title', { hasText: 'Community Repair Café' }).waitFor({ state: 'detached' });
+  assert.ok(await page.locator('.ev-title', { hasText: 'Native Seed Swap' }).isVisible());
+  // event detail
+  await page.locator('.ev-title', { hasText: 'Native Seed Swap' }).click();
+  await page.getByRole('heading', { name: /Native Seed Swap/ }).waitFor();
+  assert.ok(await page.getByRole('link', { name: /organizer’s event page/ }).isVisible());
+  assert.ok(await page.getByRole('button', { name: 'Copy link to this event' }).isVisible());
+  await noHorizontalScroll(page);
+  // week + month
+  await page.goto(BASE + 'calendar/#/week');
+  await page.locator('.week-day').first().waitFor();
+  assert.equal(await page.locator('.week-day').count(), 7);
+  await noHorizontalScroll(page);
+  if (SHOTS) await page.screenshot({ path: path.join(SHOTS, 'cal-week-phone.png'), fullPage: true });
+  await page.goto(BASE + 'calendar/#/month');
+  await page.locator('table.month').waitFor();
+  await noHorizontalScroll(page);
+  // embed mode hides site chrome
+  await page.goto(BASE + 'calendar/#/?embed=1');
+  await page.reload();
+  await page.locator('.ev-title').first().waitFor();
+  assert.equal(await page.locator('.cal-header').isVisible(), false);
+  await context.close();
+});
+
+test('community calendar: anyone submits (no source link needed); trusted link publishes directly', async () => {
+  const { context, page } = await phone();
+  async function fill(title) {
+    await page.locator('#f-title').fill(title);
+    await page.locator('#f-organizer').fill('Neighbors');
+    await page.locator('#f-date').fill('2026-12-19');
+    await page.locator('#f-start_time').fill('13:00');
+    await page.locator('#f-category').selectOption('Waste & recycling');
+    await page.locator('#f-venue').fill('Town hall');
+    await page.locator('#f-city').fill('Woodstock');
+    await page.locator('#f-county').selectOption('McHenry');
+    await page.locator('#f-relevance').fill('Electronics recycling drive.');
+    await page.locator('#f-submitter_name').fill('Lee');
+    await page.locator('#f-submitter_email').fill('lee.private@example.org');
+    await page.getByRole('button', { name: 'Submit event' }).click();
+  }
+  await page.goto(BASE + 'calendar/#/submit');
+  await fill('E2E Electronics Drive');
+  await page.locator('#form-result').getByText(/pending review/).waitFor();
+  const { link } = await steward('publisherKey', { id: 'per-demo-1' });
+  await page.goto(link.replace(/^.*\/calendar\//, BASE + 'calendar/'));
+  await page.reload();
+  await page.getByText(/trusted publishing link/).waitFor();
+  await fill('E2E Trusted Swap');
+  await page.locator('#form-result').getByText('Published', { exact: true }).waitFor();
+  await page.getByRole('link', { name: 'See your event' }).click();
+  await page.getByRole('heading', { name: 'E2E Trusted Swap' }).waitFor();
+  assert.ok(await page.getByText(/No original event page was provided/).isVisible());
+  await page.goto(BASE + 'calendar/#/');
+  await page.reload();
+  await page.locator('.ev-title', { hasText: 'E2E Trusted Swap' }).waitFor();
+  assert.equal(await page.locator('.ev-title', { hasText: 'E2E Electronics Drive' }).count(), 0, 'unreviewed stays private');
+  const html = await page.content();
+  assert.ok(!html.includes('lee.private@example.org'));
   await context.close();
 });
 

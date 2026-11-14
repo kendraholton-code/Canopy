@@ -1,0 +1,59 @@
+/* DeCarbon DeKalb community calendar — layered on site.css with its own palette. */
+body.cal {
+  --bg: #f6f8f9;
+  --surface: #ffffff;
+  --ink: #15242b;
+  --muted: #4a5b63;
+  --line: #d3dde1;
+  --brand: #0f5c6e;
+  --brand-ink: #ffffff;
+  --brand-soft: #e1eff2;
+  --accent: #9a5a00;
+  --sun: #f2b632;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) body.cal {
+    --bg: #0f171a; --surface: #172227; --ink: #e6eef1; --muted: #a9bcc3; --line: #2f4148;
+    --brand: #7fcfdf; --brand-ink: #08262e; --brand-soft: #1d3540; --accent: #f3c56b; --sun: #f2b632;
+  }
+}
+:root[data-theme="dark"] body.cal {
+  --bg: #0f171a; --surface: #172227; --ink: #e6eef1; --muted: #a9bcc3; --line: #2f4148;
+  --brand: #7fcfdf; --brand-ink: #08262e; --brand-soft: #1d3540; --accent: #f3c56b; --sun: #f2b632;
+}
+.cal-header { border-bottom: 4px solid var(--sun); }
+.cal-head { padding-top: 14px; padding-bottom: 6px; }
+.cal-brand { display: block; text-decoration: none; color: var(--ink); }
+.cal-kicker { display: block; font-size: .78rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--brand); }
+.cal-brand strong { display: block; font-size: 1.35rem; line-height: 1.2; text-wrap: balance; }
+.cal-tagline { color: var(--muted); font-size: .92rem; margin: .3rem 0 .4rem; }
+.cal-nav { display: flex; flex-wrap: wrap; gap: 4px; margin: 4px 0 6px; }
+.cal-nav a { padding: 8px 12px; border-radius: 999px; font-weight: 650; font-size: .95rem; text-decoration: none; border: 1px solid var(--line); }
+.cal-nav a[aria-current="page"] { background: var(--brand); color: var(--brand-ink); border-color: var(--brand); }
+.day-head { font-size: 1rem; margin: 1.4rem 0 .4rem; padding-bottom: 4px; border-bottom: 2px solid var(--line); }
+.ev-row { display: grid; grid-template-columns: 6.2rem 1fr; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.ev-row > * { min-width: 0; }
+.ev-time { font-weight: 700; font-variant-numeric: tabular-nums; color: var(--brand); }
+.ev-title { font-weight: 700; font-size: 1.05rem; }
+.chip { display: inline-block; font-size: .78rem; font-weight: 650; padding: 1px 8px; border-radius: 999px; background: var(--brand-soft); color: var(--ink); margin: 2px 4px 2px 0; }
+.chip.canopy { background: transparent; border: 1px solid var(--brand); color: var(--brand); }
+.week { display: grid; gap: 8px; }
+.week-day { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; background: var(--surface); }
+.week-day h3 { font-size: .95rem; margin: 0 0 4px; }
+.week-day.today { border-color: var(--brand); border-width: 2px; }
+.week-day a { display: block; padding: 4px 0; }
+@media (min-width: 900px) { .week { grid-template-columns: repeat(7, minmax(0, 1fr)); } .week-day { min-height: 140px; } }
+.month a.ev { text-decoration: none; }
+.detail-meta { display: grid; gap: 6px; margin: 10px 0; }
+.detail-meta div { display: grid; grid-template-columns: 7.5rem 1fr; gap: 8px; }
+.detail-meta dt { font-weight: 700; }
+.detail-meta dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+.feed-box { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.feed-box code { background: var(--brand-soft); padding: 6px 8px; border-radius: 6px; overflow-wrap: anywhere; font-size: .85rem; max-width: 100%; }
+body.embed .cal-header, body.embed .cal-footer, body.embed .notice { display: none; }
+body.embed main { padding-top: 8px; }
+
+.filter-panel { margin: 10px 0; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); padding: 4px 12px; }
+.filter-panel summary { cursor: pointer; font-weight: 650; padding: 8px 0; min-height: 44px; display: flex; align-items: center; }
+.filters label.check { flex-direction: row; align-items: center; font-weight: 600; }
+.filters input[type="checkbox"] { width: 22px; min-width: 0; height: 22px; margin: 0; }

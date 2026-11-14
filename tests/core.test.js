@@ -509,3 +509,57 @@ test('collaborators post action-item updates without Sheet access; a steward app
   s.update('ActionItems', id, { status: 'draft' });
   assert.equal(C.handlePost(s, ctx, { action: 'submit', type: 'item_update', item_id: id, name: 'X', note: 'y' }, null).body.ok, false);
 });
+
+/* ---------------- community calendar ---------------- */
+const calEvent = (extra) => Object.assign({ action: 'submit', type: 'event', title: 'Native Seed Swap', organizer: 'Kishwaukee neighbors', date: '2026-12-20', start_time: '10:00', venue: 'Library', city: 'Sycamore', county: 'DeKalb', category: 'Native plants & nature', relevance: 'Seeds', submitter_name: 'Pat', submitter_email: 'pat.private@example.org' }, extra);
+
+test('trusted publishers publish directly with their personal link; others are reviewed', () => {
+  const ctx = makeCtx();
+  const s = demo(ctx);
+  C.setSetting(s, 'SITE_URL', 'https://canopy.decarbondekalb.com');
+  const { link } = C.createPublisherKey(s, ctx, 'steward', 'per-demo-1');
+  const key = /key=([a-f0-9]+)/.exec(link)[1];
+  assert.match(link, /\/calendar\/#\/submit\?key=/);
+  assert.ok(notif(s, (n) => n.kind === 'publisher_link' && n.to === 'sam.private@example.org').length === 1);
+  const pub = C.handlePost(s, ctx, calEvent({ publisher_key: key, client_id: 't1' }), null).body;
+  assert.equal(pub.status, 'published');
+  const ev = s.get('Events', pub.reference);
+  assert.equal(ev.status, 'approved');
+  assert.equal(ev.published_via, 'trusted publisher');
+  assert.match(ev.approved_by, /Sam Example/);
+  assert.ok(C.buildPublicSnapshot(s, ctx).events.some((e) => e.id === ev.id && e.category === 'Native plants & nature'));
+  assert.equal(notif(s, (n) => n.kind === 'event_published').length, 1, 'steward told, no action needed');
+  // a typed email of a trusted person is NOT enough
+  const spoof = C.handlePost(s, ctx, calEvent({ title: 'Other', submitter_email: 'sam.private@example.org', client_id: 't2' }), null).body;
+  assert.equal(spoof.status, 'pending_review');
+  // wrong key → reviewed, told why
+  const wrong = C.handlePost(s, ctx, calEvent({ title: 'Third', publisher_key: 'x'.repeat(32), client_id: 't3' }), null).body;
+  assert.equal(wrong.status, 'pending_review');
+  assert.match(wrong.message, /wasn’t recognized/);
+  // a trusted duplicate (same title/date) is held for review
+  const dup = C.handlePost(s, ctx, calEvent({ publisher_key: key, client_id: 't4' }), null).body;
+  assert.equal(dup.status, 'pending_review');
+  // revoking stops it; key hash never public
+  C.revokePublisher(s, ctx, 'steward', 'per-demo-1');
+  assert.equal(C.handlePost(s, ctx, calEvent({ title: 'Fourth', publisher_key: key, client_id: 't5' }), null).body.status, 'pending_review');
+  assert.equal(C.privacyAudit(s, ctx).ok, true);
+});
+
+test('northern Illinois counties, topics, optional source link, and filtered feeds', () => {
+  const ctx = makeCtx();
+  const s = demo(ctx);
+  assert.ok(C.COUNTIES.includes('McHenry') && C.COUNTIES[0] === 'DeKalb');
+  const noSource = C.handlePost(s, ctx, calEvent({ county: 'McHenry', title: 'Woodstock cleanup', category: 'Volunteering & cleanups' }), null).body;
+  assert.equal(noSource.ok, true, 'source link is optional');
+  assert.equal(C.handlePost(s, ctx, calEvent({ category: 'Not a topic' }), null).body.errors.category !== undefined, true);
+  C.approve(s, ctx, 'st', 'Events', noSource.reference);
+  const all = C.handleGet(s, ctx, { action: 'ics', which: 'events' }).body;
+  const mchenry = C.handleGet(s, ctx, { action: 'ics', which: 'events', county: 'McHenry' }).body;
+  const repair = C.handleGet(s, ctx, { action: 'ics', which: 'events', category: 'Repair & reuse' }).body;
+  assert.match(all, /Woodstock cleanup/);
+  assert.match(mchenry, /Woodstock cleanup/);
+  assert.doesNotMatch(mchenry, /Repair Café/);
+  assert.match(repair, /Repair Café/);
+  assert.doesNotMatch(repair, /Woodstock/);
+  assert.match(all, /X-WR-CALNAME:DeKalb County\\, Illinois Community Sustainability Calendar/);
+});

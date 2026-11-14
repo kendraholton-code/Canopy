@@ -235,7 +235,7 @@
     var counties = {};
     (snap.events || []).forEach(function (e) { if (e.county) counties[e.county] = 1; });
     var out = '<h1>Community calendar</h1><p>Sustainability, climate adaptation and community-resilience events in and around DeKalb County. Always check the organizer’s own page before you go.</p>' +
-      '<p class="row"><a class="btn" href="#/forms/event">Submit an event</a>' + (ics ? '<a class="btn secondary" href="' + h(ics) + '">Subscribe (iCal feed)</a>' : '') + '</p>' +
+      '<p class="alert ok">This list is part of the <a href="calendar/"><strong>' + h(snap.settings.CAL_NAME || 'DeKalb County, Illinois Community Sustainability Calendar') + '</strong></a>, with week and month views, sharing and subscriptions.</p><p class="row"><a class="btn" href="#/forms/event">Submit an event</a>' + (ics ? '<a class="btn secondary" href="' + h(ics) + '">Subscribe (iCal feed)</a>' : '') + '</p>' +
       '<form class="filters" data-search="calendar"><label>Search<input type="search" name="q" value="' + h(r.q.q || '') + '"></label><label>County<select name="county"><option value="">All</option>' +
       C.COUNTIES.filter(function (c) { return counties[c] || c === 'Online'; }).map(function (c) { return '<option' + (c === county ? ' selected' : '') + '>' + h(c) + '</option>'; }).join('') + '</select></label>' +
       '<label class="check" style="flex-direction:row"><input type="checkbox" name="free" value="1"' + (free ? ' checked' : '') + '> Free only</label>' +
@@ -397,6 +397,7 @@
         { name: 'date', label: 'Date', type: 'date', required: true },
         { name: 'start_time', label: 'Start time (Central Time)', type: 'time', required: true },
         { name: 'end_time', label: 'End time (optional)', type: 'time' },
+        { name: 'category', label: 'Topic', type: 'select', required: true, options: [['', 'Choose…']].concat(C.CATEGORIES.map(function (c) { return [c, c]; })) },
         { name: 'venue', label: 'Venue (or leave blank if online only)', type: 'text' },
         { name: 'city', label: 'City or town', type: 'text' },
         { name: 'county', label: 'County', type: 'select', required: true, options: [['', 'Choose…']].concat(C.COUNTIES.map(function (c) { return [c, c]; })) },
@@ -404,7 +405,7 @@
         { name: 'relevance', label: 'How does it connect to sustainability or resilience?', type: 'textarea', required: true, hint: 'One or two sentences.' },
         { name: 'cost', label: 'Cost', type: 'text', hint: 'e.g. Free, $10, sliding scale' },
         { name: 'registration_url', label: 'Registration link (optional)', type: 'url' },
-        { name: 'source_url', label: 'Organizer’s event page (recommended)', type: 'url' },
+        { name: 'source_url', label: 'Link to the original event page (recommended)', type: 'url', hint: 'If there isn’t one, leave it blank — your event is still welcome.' },
         { name: 'accessibility', label: 'Accessibility details', type: 'textarea', hint: 'Step-free access, captions, childcare, transit, etc.' },
         { name: 'submitter_name', label: 'Your name', type: 'text', required: true, autocomplete: 'name' },
         { name: 'submitter_email', label: 'Your email', type: 'email', required: true, autocomplete: 'email', hint: 'Private. We’ll send you a link to correct or cancel the event.' }

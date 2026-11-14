@@ -32,7 +32,7 @@
     },
     People: {
       prefix: 'per',
-      columns: ['id', 'display_name', 'private_email', 'email_norm', 'locality', 'public_contact', 'directory_consent', 'contact_publish_consent', 'updates_consent', 'interests', 'accessibility_notes', 'duplicate_of'].concat(EDITORIAL)
+      columns: ['id', 'display_name', 'private_email', 'email_norm', 'locality', 'public_contact', 'directory_consent', 'contact_publish_consent', 'updates_consent', 'interests', 'accessibility_notes', 'duplicate_of', 'trusted_publisher', 'publisher_key_hash'].concat(EDITORIAL)
     },
     Affiliations: {
       prefix: 'aff',
@@ -42,7 +42,7 @@
       prefix: 'evt',
       columns: [
         'id', 'title', 'organizer', 'organization_id', 'date', 'start_time', 'end_date', 'end_time', 'venue', 'city', 'county', 'online_url', 'source_url',
-        'registration_url', 'relevance', 'cost', 'accessibility', 'submitter_name', 'submitter_email', 'manage_token_hash', 'duplicate_of', 'cancelled_reason'
+        'registration_url', 'relevance', 'cost', 'accessibility', 'submitter_name', 'submitter_email', 'manage_token_hash', 'duplicate_of', 'cancelled_reason', 'category', 'published_via'
       ].concat(EDITORIAL)
     },
     Groups: {
@@ -95,7 +95,7 @@
 
   /** Fields a submitter may propose changing through a correction. */
   S.correctable = {
-    Events: ['title', 'organizer', 'date', 'start_time', 'end_date', 'end_time', 'venue', 'city', 'county', 'online_url', 'source_url', 'registration_url', 'relevance', 'cost', 'accessibility'],
+    Events: ['title', 'organizer', 'date', 'start_time', 'end_date', 'end_time', 'venue', 'city', 'county', 'online_url', 'source_url', 'registration_url', 'relevance', 'cost', 'accessibility', 'category'],
     Organizations: ['name', 'description', 'mission', 'website', 'public_email', 'locality', 'service_area', 'interests', 'offers', 'needs', 'logo_url'],
     People: ['display_name', 'locality', 'public_contact', 'interests'],
     Requests: ['title', 'description', 'next_step', 'contact_public'],

@@ -78,6 +78,7 @@ const server = http.createServer(async (req, res) => {
       else if (op === 'outbox') out = C.processOutbox(store, ctx, mailer, {});
       else if (op === 'clock') { clockOffset = +a.offsetMs || 0; out = { now: ctx.now().toISOString() }; }
       else if (op === 'privacy') out = C.privacyAudit(store, ctx);
+      else if (op === 'publisherKey') out = C.createPublisherKey(store, ctx, 'local steward', a.id);
       else out = { ok: false, message: 'unknown op' };
       C.setSetting(store, 'LIVE_SENDING', 'no');
       save();

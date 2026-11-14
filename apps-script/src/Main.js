@@ -203,6 +203,8 @@ function onOpen() {
     .addSeparator()
     .addItem('Apply selected correction', 'canopyMenuApplyCorrection')
     .addItem('Resolve selected membership request…', 'canopyMenuResolveMembership')
+    .addItem('Calendar: create publishing link for selected person', 'canopyMenuPublisherKey')
+    .addItem('Calendar: revoke publishing for selected person', 'canopyMenuRevokePublisher')
     .addSeparator()
     .addItem('Preview selected change set', 'canopyMenuPreviewChangeSet')
     .addItem('Apply selected change set', 'canopyMenuApplyChangeSet')
@@ -306,6 +308,23 @@ function canopyMenuResolveMembership() {
   } catch (err) {
     ui.alert('Not changed: ' + err.message);
   }
+}
+
+function canopyMenuPublisherKey() {
+  var ui = SpreadsheetApp.getUi();
+  try {
+    var sel = canopySelected_();
+    if (sel.table !== 'People') throw new Error('Select a person in the People tab (add a row for them first if needed: display_name and private_email).');
+    var store = new SheetStore();
+    var res = Canopy.createPublisherKey(store, canopyCtx_(), canopyActor_(), sel.ids[0]);
+    Canopy.processOutbox(store, canopyCtx_(), canopyMailer_(), {});
+    ui.alert('Publishing link for ' + res.person + ' (copy it now — it is not stored and cannot be shown again):\n\n' + res.link + '\n\nIt was also emailed to them if live sending is on. Any previous link for this person no longer works.');
+  } catch (err) {
+    ui.alert('Not created: ' + err.message);
+  }
+}
+function canopyMenuRevokePublisher() {
+  canopyBulk_(Canopy.revokePublisher, 'Publishing revoked');
 }
 
 function canopyChangeSetSelected_() {
@@ -431,6 +450,8 @@ var CANOPY_DROPDOWNS = {
   progress: ['open', 'in_progress', 'done', 'dropped', 'closed'],
   state: ['interested', 'acknowledged', 'active', 'waitlisted', 'declined', 'withdrawn', 'open', 'resolved', 'pending', 'previewed', 'applied', 'invalid', 'rejected'],
   directory_consent: ['yes', 'no'],
+  trusted_publisher: ['yes', 'no'],
+  category: Canopy.CATEGORIES,
   contact_publish_consent: ['yes', 'no'],
   updates_consent: ['yes', 'no'],
   publish_consent: ['yes', 'no'],

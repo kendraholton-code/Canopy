@@ -114,6 +114,47 @@
     return { changed: true, state: state };
   };
 
+  /* -------- trusted calendar publishers -------- */
+
+  C.calendarUrl = function (store) {
+    var s = C.settings(store);
+    var url = U.str(s.CALENDAR_URL) || (U.str(s.SITE_URL) ? U.str(s.SITE_URL).replace(/\/$/, '') + '/calendar/' : '');
+    return url || '[CALENDAR_URL not configured]';
+  };
+
+  /** A trusted publisher is a People row with trusted_publisher = yes and a matching key. */
+  C.findPublisher = function (store, key) {
+    if (!key || String(key).length < 20) return null;
+    var h = U.tokenHash(key);
+    return store.list('People').filter(function (p) {
+      return p.publisher_key_hash === h && U.yes(p.trusted_publisher) && ['archived', 'unpublished', 'cancelled'].indexOf(p.status) < 0;
+    })[0] || null;
+  };
+
+  /** Create (or replace) a person's personal publishing link. Returns the link once; only its hash is stored. */
+  C.createPublisherKey = function (store, ctx, actor, personId) {
+    var p = store.get('People', personId);
+    if (!p) throw new Error('Select a row in the People tab.');
+    var key = U.newToken(ctx);
+    store.update('People', personId, { trusted_publisher: 'yes', publisher_key_hash: U.tokenHash(key), updated_at: U.nowIso(ctx), updated_by: actor });
+    var link = C.calendarUrl(store) + '#/submit?key=' + key;
+    C.audit(store, ctx, actor, 'publisher_key_created', 'People', personId, 'previous link (if any) no longer works');
+    if (U.isEmail(p.private_email)) {
+      var cal = C.settings(store).CAL_NAME || 'community calendar';
+      C.queueNotification(store, ctx, {
+        kind: 'publisher_link', to: p.private_email, subject: 'Your publishing link for the ' + cal, related: 'People:' + personId, dedupe_key: 'publisher:' + personId + ':' + U.nowIso(ctx),
+        body: 'Hi ' + (U.str(p.display_name).split(/\s+/)[0] || 'there') + ',\n\nYou can now publish events straight to the ' + cal + ' without waiting for review. Use this personal link to submit events:\n\n' + link +
+          '\n\nPlease keep it to yourself — anyone with the link can publish. If it is ever shared by mistake, ask a steward for a new one (the old one stops working).'
+      });
+    }
+    return { link: link, person: p.display_name };
+  };
+
+  C.revokePublisher = function (store, ctx, actor, personId) {
+    store.update('People', personId, { trusted_publisher: 'no', publisher_key_hash: '', updated_at: U.nowIso(ctx), updated_by: actor });
+    C.audit(store, ctx, actor, 'publisher_revoked', 'People', personId, '');
+  };
+
   /* -------- private links (token holders only; no account) -------- */
 
   function findByToken(store, table, field, token) {

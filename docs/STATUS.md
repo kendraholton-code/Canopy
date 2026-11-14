@@ -38,6 +38,19 @@ All of the items below are covered by 39 engine and Apps Script tests and 7 brow
 - The 3 triggers are installed, and the 15-minute notification check has run.
 - `site/js/config.js` now points at the live engine.
 
+## Community calendar, Phase 1 (built November 14)
+
+- The standalone DeCarbon calendar page is at `/calendar/`:
+  - upcoming list, week and month views;
+  - search, county, topic, free-only and Canopy-calls filters;
+  - a shareable link for every view and every event;
+  - event pages with the original source link, a map link, Google Calendar and .ics buttons, and "report a problem";
+  - a Subscribe page with feeds filtered by county or topic;
+  - an embed mode (`?embed=1`).
+- Anyone can submit an event without an account. Trusted publishers post directly through personal links; everyone else's events are reviewed first.
+- Tested: 42 engine and Apps Script tests, plus 10 browser tests at phone size.
+- **Phase 2 (not built yet):** copying approved events into a public Google Calendar. **Phase 3:** importing partner calendar feeds.
+
 ## Simulated or demo only
 
 - **No real email has been sent.** Every notification in testing was `simulated`, or went to a mocked MailApp.

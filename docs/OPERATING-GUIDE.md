@@ -52,6 +52,34 @@ You can also simply type in cells. Changing `status` to `approved` stamps your n
 - Events disappear from "upcoming" once they've ended, but stay in history.
 - A weekly backup runs Monday at 3 a.m.
 
+## The community calendar
+
+The **DeKalb County, Illinois Community Sustainability Calendar** is at `/calendar/` on the site, for example `https://canopy.decarbondekalb.com/calendar/`. It is DeCarbon DeKalb's calendar, and Canopy feeds into it. It uses the same **Events** tab as the Canopy site, and Canopy's monthly calls appear on it automatically.
+
+- **Anyone can submit an event.** Their event lands in the Events tab as `pending` until a steward approves it.
+- **Trusted publishers post directly.** Make sure the person has a row in the **People** tab: add one with `display_name` and `private_email` if needed. Then select that row → **Canopy → Calendar: create publishing link for selected person**.
+  - Copy the link from the pop-up and send it to them. It's also emailed to them if live sending is on.
+  - Events they submit through that link publish immediately, and the events steward gets an FYI email.
+  - **Calendar: revoke publishing** stops their link working. Creating a new link also replaces the old one.
+  - Someone typing a trusted person's email address is *not* enough to publish; only the personal link works.
+  - A trusted publisher's event that duplicates an existing title and date still waits for review.
+- **Source links are recommended, not required.** Events without one say "No original event page was provided — please confirm details with the organizer."
+- **Topics and counties.** Topics come from a fixed list (Energy & climate, Repair & reuse, and so on). Counties cover DeKalb first, then northern Illinois, plus Online and Regional.
+- **Settings:**
+  - `CAL_NAME`, `CAL_TAGLINE` and `CAL_OWNER_NOTE` set the calendar's wording.
+  - `CAL_NOTICE` shows an optional banner.
+  - `CAL_CONTACT_EMAIL` is the "Questions or problems" address.
+  - `CALENDAR_URL` defaults to `SITE_URL` + `/calendar/`.
+- **Sharing.** Every view and every event has its own link ("Copy link to this view" and "Copy link to this event").
+- **Subscribing.** The calendar's **Subscribe** page gives Google, Apple and Outlook subscription links, which update automatically. Adding `&county=McHenry` or `&category=Repair%20%26%20reuse` to a feed address narrows it to one county or topic.
+- **Embedding on Squarespace or partner sites** (Squarespace needs a plan that allows iframes in Code blocks):
+
+  ```html
+  <iframe src="https://canopy.decarbondekalb.com/calendar/#/?embed=1" title="DeKalb County, Illinois Community Sustainability Calendar" style="width:100%;height:900px;border:0"></iframe>
+  ```
+
+  Swap `#/` for `#/week` or `#/month` to embed a different view.
+
 ## Action-item updates from collaborators
 
 Collaborators don't need the Sheet. Every published action item on the site has a **"Post an update on this item"** link. These appear on the meeting page and under **Collaborations & requests → Open action items**.

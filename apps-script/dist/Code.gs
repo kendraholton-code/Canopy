@@ -433,7 +433,7 @@
     },
     People: {
       prefix: 'per',
-      columns: ['id', 'display_name', 'private_email', 'email_norm', 'locality', 'public_contact', 'directory_consent', 'contact_publish_consent', 'updates_consent', 'interests', 'accessibility_notes', 'duplicate_of'].concat(EDITORIAL)
+      columns: ['id', 'display_name', 'private_email', 'email_norm', 'locality', 'public_contact', 'directory_consent', 'contact_publish_consent', 'updates_consent', 'interests', 'accessibility_notes', 'duplicate_of', 'trusted_publisher', 'publisher_key_hash'].concat(EDITORIAL)
     },
     Affiliations: {
       prefix: 'aff',
@@ -443,7 +443,7 @@
       prefix: 'evt',
       columns: [
         'id', 'title', 'organizer', 'organization_id', 'date', 'start_time', 'end_date', 'end_time', 'venue', 'city', 'county', 'online_url', 'source_url',
-        'registration_url', 'relevance', 'cost', 'accessibility', 'submitter_name', 'submitter_email', 'manage_token_hash', 'duplicate_of', 'cancelled_reason'
+        'registration_url', 'relevance', 'cost', 'accessibility', 'submitter_name', 'submitter_email', 'manage_token_hash', 'duplicate_of', 'cancelled_reason', 'category', 'published_via'
       ].concat(EDITORIAL)
     },
     Groups: {
@@ -496,7 +496,7 @@
 
   /** Fields a submitter may propose changing through a correction. */
   S.correctable = {
-    Events: ['title', 'organizer', 'date', 'start_time', 'end_date', 'end_time', 'venue', 'city', 'county', 'online_url', 'source_url', 'registration_url', 'relevance', 'cost', 'accessibility'],
+    Events: ['title', 'organizer', 'date', 'start_time', 'end_date', 'end_time', 'venue', 'city', 'county', 'online_url', 'source_url', 'registration_url', 'relevance', 'cost', 'accessibility', 'category'],
     Organizations: ['name', 'description', 'mission', 'website', 'public_email', 'locality', 'service_area', 'interests', 'offers', 'needs', 'logo_url'],
     People: ['display_name', 'locality', 'public_contact', 'interests'],
     Requests: ['title', 'description', 'next_step', 'contact_public'],
@@ -675,13 +675,13 @@
     ActionItems: ['id', 'meeting_id', 'description', 'owner_display', 'due_date', 'progress', 'next_step', 'group_id'],
     Organizations: ['id', 'name', 'description', 'mission', 'website', 'public_email', 'locality', 'service_area', 'interests', 'offers', 'needs', 'logo_url', 'verification'],
     People: ['id', 'display_name', 'locality', 'interests'],
-    Events: ['id', 'title', 'organizer', 'organization_id', 'date', 'start_time', 'end_date', 'end_time', 'venue', 'city', 'county', 'online_url', 'source_url', 'registration_url', 'relevance', 'cost', 'accessibility'],
+    Events: ['id', 'title', 'organizer', 'organization_id', 'date', 'start_time', 'end_date', 'end_time', 'venue', 'city', 'county', 'online_url', 'source_url', 'registration_url', 'relevance', 'cost', 'accessibility', 'category', 'published_via'],
     Groups: ['id', 'slot', 'label', 'label_note', 'purpose', 'group_status', 'enrollment_mode', 'intake', 'convenor_display', 'public_contact', 'meet_url', 'notes_url', 'next_gathering', 'time_expectation', 'current_needs', 'room_convention'],
     Requests: ['id', 'kind', 'title', 'description', 'owner_display', 'group_id', 'organization_id', 'progress', 'next_step', 'contact_public'],
     Updates: ['id', 'meeting_id', 'display_name', 'org_display', 'update_text', 'upcoming_date', 'ask_offer', 'link']
   };
 
-  C.PUBLIC_SETTINGS = ['SITE_NAME', 'SITE_TAGLINE', 'ORG_FORM_URL', 'SITE_NOTICE', 'CORRECTIONS_EMAIL_PUBLIC', 'SUBMISSIONS_ENABLED', 'PLATFORM_NOTE'];
+  C.PUBLIC_SETTINGS = ['SITE_NAME', 'SITE_TAGLINE', 'ORG_FORM_URL', 'SITE_NOTICE', 'CORRECTIONS_EMAIL_PUBLIC', 'SUBMISSIONS_ENABLED', 'PLATFORM_NOTE', 'CAL_NAME', 'CAL_TAGLINE', 'CAL_OWNER_NOTE', 'CAL_NOTICE', 'CAL_CONTACT_EMAIL', 'SITE_URL', 'CALENDAR_URL'];
 
   function isPublic(row, showDemo) {
     if (U.str(row.status) !== 'approved') return false;
@@ -825,7 +825,8 @@
   };
 
   /** Public iCalendar feed: approved, public Canopy meetings and community events only. */
-  C.buildPublicIcs = function (store, ctx, which) {
+  C.buildPublicIcs = function (store, ctx, which, filters) {
+    filters = filters || {};
     var snap = C.buildPublicSnapshot(store, ctx);
     var items = [];
     if (which !== 'events') {
@@ -844,6 +845,8 @@
     }
     if (which !== 'meetings') {
       snap.events.forEach(function (e) {
+        if (filters.county && (filters.county === 'Online' ? !e.is_online : e.county !== filters.county)) return;
+        if (filters.category && e.category !== filters.category) return;
         items.push({
           uid: e.id,
           date: e.date,
@@ -857,7 +860,7 @@
         });
       });
     }
-    return T.buildIcs(items, 'Canopy — DeKalb County sustainability', snap.generated_at);
+    return T.buildIcs(items, U.str(snap.settings.CAL_NAME) || 'DeKalb County, Illinois Community Sustainability Calendar', snap.generated_at);
   };
 })(typeof globalThis !== 'undefined' ? globalThis : this);
 
@@ -874,7 +877,7 @@
     (snapObj.people || []).forEach(function (p) { (U.str(p.public_contact).match(/[^\s<>()]+@[^\s<>()]+/g) || []).forEach(function (e) { allowed[e.toLowerCase()] = 1; }); });
     (snapObj.groups || []).forEach(function (g) { (U.str(g.public_contact).match(/[^\s<>()]+@[^\s<>()]+/g) || []).forEach(function (e) { allowed[e.toLowerCase()] = 1; }); });
     var secrets = [];
-    store.list('People').forEach(function (p) { secrets.push(p.private_email, p.email_norm, p.accessibility_notes); });
+    store.list('People').forEach(function (p) { secrets.push(p.private_email, p.email_norm, p.accessibility_notes, p.publisher_key_hash); });
     store.list('Events').forEach(function (e) { secrets.push(e.submitter_email, e.manage_token_hash); });
     store.list('Groups').forEach(function (g) { secrets.push(g.contact_email, g.backup_email); });
     store.list('Roles').forEach(function (r) { secrets.push(r.email, r.backup_email); });
@@ -1045,8 +1048,12 @@
     contact_publish: 'Publish the public contact I provided (never my private email unless I typed it there).'
   };
 
-  var COUNTIES = ['DeKalb', 'Kane', 'Kendall', 'LaSalle', 'Lee', 'Ogle', 'Boone', 'Winnebago', 'Online', 'Regional / multiple'];
+  // DeKalb first, then northern Illinois counties (alphabetical), then online/regional.
+  var COUNTIES = ['DeKalb', 'Boone', 'Bureau', 'Carroll', 'Cook', 'DuPage', 'Grundy', 'Henry', 'Jo Daviess', 'Kane', 'Kankakee', 'Kendall', 'Lake', 'LaSalle', 'Lee',
+    'Livingston', 'Marshall', 'McHenry', 'Ogle', 'Putnam', 'Stephenson', 'Whiteside', 'Will', 'Winnebago', 'Online', 'Regional / multiple'];
   C.COUNTIES = COUNTIES;
+  C.CATEGORIES = ['Energy & climate', 'Food & gardening', 'Native plants & nature', 'Repair & reuse', 'Waste & recycling', 'Water', 'Transportation',
+    'Learning & civic life', 'Volunteering & cleanups', 'Family & youth', 'Arts & community', 'Other'];
 
   function fail(errors, message) {
     return { ok: false, code: 'validation', errors: errors, message: message || 'Please check the highlighted fields.' };
@@ -1338,6 +1345,7 @@
     if (U.str(p.venue) && !U.str(p.city)) errors.city = 'Which city or town?';
     if (COUNTIES.indexOf(U.str(p.county)) < 0) errors.county = 'Choose a county (or Online).';
     if (!U.str(p.relevance)) errors.relevance = 'One sentence on how it connects to sustainability or resilience.';
+    if (p.category && C.CATEGORIES.indexOf(U.str(p.category)) < 0) errors.category = 'Choose a topic from the list.';
     if (p.source_url && !U.isHttpUrl(p.source_url)) errors.source_url = 'Links must start with https://';
     if (p.registration_url && !U.isHttpUrl(p.registration_url)) errors.registration_url = 'Links must start with https://';
     if (!U.str(p.submitter_name)) errors.submitter_name = 'Your name is required.';
@@ -1355,6 +1363,9 @@
     })[0];
     var token = U.newToken(ctx);
     var org = C.findOrgByName(store, p.organizer);
+    var publisher = C.findPublisher(store, p.publisher_key);
+    var keyRejected = !!U.str(p.publisher_key) && !publisher;
+    var trusted = !!publisher && !dup;
     var ev = store.insert('Events', {
       id: U.makeId('evt', ctx),
       title: U.clip(p.title, 160),
@@ -1377,16 +1388,26 @@
       submitter_email: U.normEmail(p.submitter_email),
       manage_token_hash: U.tokenHash(token),
       duplicate_of: dup ? dup.id : '',
-      status: 'pending',
+      category: C.CATEGORIES.indexOf(U.str(p.category)) >= 0 ? U.str(p.category) : 'Other',
+      published_via: trusted ? 'trusted publisher' : 'review',
+      status: trusted ? 'approved' : 'pending',
+      approved_by: trusted ? 'trusted publisher: ' + publisher.display_name : '',
+      approved_at: trusted ? U.nowIso(ctx) : '',
       visibility: 'public',
-      verification: 'self_reported',
+      verification: trusted ? 'verified' : 'self_reported',
       source_ref: sub.id,
       created_at: U.nowIso(ctx),
       updated_at: U.nowIso(ctx)
     });
+    if (trusted) C.audit(store, ctx, 'trusted publisher: ' + publisher.display_name, 'status:→approved', 'Events', ev.id, 'published directly');
     var manage = siteLink(settings, 'manage?t=' + token);
     var steward = C.roleEmail(store, 'events_steward');
-    if (steward) {
+    if (steward && trusted) {
+      C.queueNotification(store, ctx, {
+        kind: 'event_published', to: steward, subject: '[Calendar] Published by a trusted publisher: ' + ev.title, related: 'Events:' + ev.id, dedupe_key: 'review:' + ev.id,
+        body: publisher.display_name + ' published this event directly (trusted publisher).\n\n' + ev.title + '\n' + T.formatLongDate(ev.date) + ' ' + T.formatTime(ev.start_time) + '\nSource: ' + (ev.source_url || 'none given') + '\n\nNo action needed. To take it down: Events tab → select the row → Canopy → Unpublish.'
+      });
+    } else if (steward) {
       C.queueNotification(store, ctx, {
         kind: 'event_review', to: steward, subject: '[Canopy] Event to review: ' + ev.title, related: 'Events:' + ev.id, dedupe_key: 'review:' + ev.id,
         body: 'A community-calendar event is waiting for review' + (dup ? ' (possible duplicate of ' + dup.id + ')' : '') + '.\n\n' + ev.title + '\n' + T.formatLongDate(ev.date) + ' ' + T.formatTime(ev.start_time) + '\nOrganizer: ' + ev.organizer + '\nRelevance: ' + ev.relevance + '\nSource: ' + (ev.source_url || 'none given') + '\n\nApprove it in the Canopy Admin sheet → Events tab (select the row → Canopy menu → Approve).'
@@ -1394,13 +1415,16 @@
     }
     C.queueNotification(store, ctx, {
       kind: 'acknowledgement', to: p.submitter_email, subject: '[Canopy] Event received: ' + ev.title, related: 'Events:' + ev.id, dedupe_key: 'ack:' + ev.id,
-      body: 'Thanks — your event “' + ev.title + '” was received and is waiting for a steward to review it. It is not on the public calendar yet.\n\n' +
+      body: (trusted ? 'Thanks — your event “' + ev.title + '” is published on the calendar now.\n\n' : 'Thanks — your event “' + ev.title + '” was received and is waiting for a steward to review it. It is not on the public calendar yet.\n\n') +
         (steward ? '' : 'Note: no calendar steward is assigned yet, so review may take until the next monthly call.\n\n') +
         'To correct or cancel this event later, use this private link: ' + manage
     });
+    if (trusted) {
+      return { ok: true, status: 'published', reference: ev.id, refs: ['Events:' + ev.id], message: 'Published! Your event is on the calendar now. We emailed you a private link to correct or cancel it.' };
+    }
     return {
       ok: true, status: 'pending_review', reference: ev.id, refs: ['Events:' + ev.id],
-      message: 'Thanks! Your event was received and is pending review — it is not public yet.' + (steward ? ' A calendar steward has been notified.' : ' No calendar steward is assigned yet, so review may wait until the next monthly call.') + ' We emailed you a private link to correct or cancel it.'
+      message: (keyRejected ? 'Your publishing link wasn’t recognized, so this event will be reviewed first. ' : dup && publisher ? 'An event with this title and date already exists, so a steward will check it first. ' : '') + 'Thanks! Your event was received and is pending review — it is not public yet.' + (steward ? ' A calendar steward has been notified.' : ' No calendar steward is assigned yet, so review may wait until the next monthly call.') + ' We emailed you a private link to correct or cancel it.'
     };
   };
 
@@ -1778,6 +1802,47 @@
     return { changed: true, state: state };
   };
 
+  /* -------- trusted calendar publishers -------- */
+
+  C.calendarUrl = function (store) {
+    var s = C.settings(store);
+    var url = U.str(s.CALENDAR_URL) || (U.str(s.SITE_URL) ? U.str(s.SITE_URL).replace(/\/$/, '') + '/calendar/' : '');
+    return url || '[CALENDAR_URL not configured]';
+  };
+
+  /** A trusted publisher is a People row with trusted_publisher = yes and a matching key. */
+  C.findPublisher = function (store, key) {
+    if (!key || String(key).length < 20) return null;
+    var h = U.tokenHash(key);
+    return store.list('People').filter(function (p) {
+      return p.publisher_key_hash === h && U.yes(p.trusted_publisher) && ['archived', 'unpublished', 'cancelled'].indexOf(p.status) < 0;
+    })[0] || null;
+  };
+
+  /** Create (or replace) a person's personal publishing link. Returns the link once; only its hash is stored. */
+  C.createPublisherKey = function (store, ctx, actor, personId) {
+    var p = store.get('People', personId);
+    if (!p) throw new Error('Select a row in the People tab.');
+    var key = U.newToken(ctx);
+    store.update('People', personId, { trusted_publisher: 'yes', publisher_key_hash: U.tokenHash(key), updated_at: U.nowIso(ctx), updated_by: actor });
+    var link = C.calendarUrl(store) + '#/submit?key=' + key;
+    C.audit(store, ctx, actor, 'publisher_key_created', 'People', personId, 'previous link (if any) no longer works');
+    if (U.isEmail(p.private_email)) {
+      var cal = C.settings(store).CAL_NAME || 'community calendar';
+      C.queueNotification(store, ctx, {
+        kind: 'publisher_link', to: p.private_email, subject: 'Your publishing link for the ' + cal, related: 'People:' + personId, dedupe_key: 'publisher:' + personId + ':' + U.nowIso(ctx),
+        body: 'Hi ' + (U.str(p.display_name).split(/\s+/)[0] || 'there') + ',\n\nYou can now publish events straight to the ' + cal + ' without waiting for review. Use this personal link to submit events:\n\n' + link +
+          '\n\nPlease keep it to yourself — anyone with the link can publish. If it is ever shared by mistake, ask a steward for a new one (the old one stops working).'
+      });
+    }
+    return { link: link, person: p.display_name };
+  };
+
+  C.revokePublisher = function (store, ctx, actor, personId) {
+    store.update('People', personId, { trusted_publisher: 'no', publisher_key_hash: '', updated_at: U.nowIso(ctx), updated_by: actor });
+    C.audit(store, ctx, actor, 'publisher_revoked', 'People', personId, '');
+  };
+
   /* -------- private links (token holders only; no account) -------- */
 
   function findByToken(store, table, field, token) {
@@ -2028,7 +2093,7 @@
     params = params || {};
     var action = U.str(params.action) || 'public';
     if (action === 'public') return { type: 'json', body: C.buildPublicSnapshot(store, ctx) };
-    if (action === 'ics') return { type: 'ics', body: C.buildPublicIcs(store, ctx, U.str(params.which)) };
+    if (action === 'ics') return { type: 'ics', body: C.buildPublicIcs(store, ctx, U.str(params.which), { county: U.str(params.county), category: U.str(params.category) }) };
     if (action === 'token') return { type: 'json', body: C.tokenInfo(store, ctx, U.str(params.kind), U.str(params.t)) };
     if (action === 'health') {
       var s = C.settings(store);
@@ -2139,6 +2204,12 @@
     ['SITE_NOTICE', 'Prototype — content is draft until coalition stewards approve it.', 'Banner text on every page. Empty = no banner.'],
     ['CORRECTIONS_EMAIL_PUBLIC', '', 'Optional public email for corrections, shown in the footer.'],
     ['PLATFORM_NOTE', 'Canopy is coalition-led. DeCarbon DeKalb provides the Google Meet platform and shared technical infrastructure; it does not own, lead or govern Canopy. Candidate-support organizing happens elsewhere, outside this site and its rooms.', 'Shown in the footer.'],
+    ['CAL_NAME', 'DeKalb County, Illinois Community Sustainability Calendar', 'Name of the DeCarbon DeKalb community calendar.'],
+    ['CAL_TAGLINE', 'Community sustainability events across DeKalb County and northern Illinois.', 'Calendar tagline.'],
+    ['CAL_OWNER_NOTE', 'Anyone can submit an event. Trusted community groups publish directly; everything else is reviewed first. Questions or a problem with a listing? Use “Report a problem” below.', 'Shown in the calendar footer.'],
+    ['CAL_NOTICE', '', 'Optional banner on the calendar page.'],
+    ['CAL_CONTACT_EMAIL', 'canopy@decarbondekalb.com', 'Public email for calendar questions and problems (e.g. a shared DeCarbon inbox). Shown in the calendar footer.'],
+    ['CALENDAR_URL', '', 'Public calendar address, e.g. https://canopy.decarbondekalb.com/calendar/ (defaults to SITE_URL + /calendar/).'],
     ['BACKUP_FOLDER_ID', '', 'Drive folder for weekly backups (created automatically on first backup).'],
     ['BACKUP_KEEP', '26', 'How many weekly backups to keep.']
   ];
@@ -2334,7 +2405,7 @@
     ];
     evs.forEach(function (e) {
       if (store.get('Events', e[0])) return;
-      store.insert('Events', base(ctx, { id: e[0], title: e[1], organizer: e[2], date: e[3], start_time: e[4], end_time: e[5], venue: e[6], city: e[7], county: e[8], online_url: e[9], relevance: e[10], cost: e[11], accessibility: e[12], source_url: 'https://example.org/event', submitter_name: 'Demo submitter', submitter_email: 'submitter.private@example.org', demo: 'yes', verification: 'verified' }));
+      store.insert('Events', base(ctx, { category: e[0] === 'evt-demo-2' ? 'Native plants & nature' : e[0] === 'evt-demo-3' ? 'Volunteering & cleanups' : 'Repair & reuse', id: e[0], title: e[1], organizer: e[2], date: e[3], start_time: e[4], end_time: e[5], venue: e[6], city: e[7], county: e[8], online_url: e[9], relevance: e[10], cost: e[11], accessibility: e[12], source_url: 'https://example.org/event', submitter_name: 'Demo submitter', submitter_email: 'submitter.private@example.org', demo: 'yes', verification: 'verified' }));
       C.approve(store, ctx, actor, 'Events', e[0]);
     });
     C.cancel(store, ctx, actor, 'Events', 'evt-demo-4', 'Organizer unavailable (DEMO)');
@@ -2677,6 +2748,8 @@ function onOpen() {
     .addSeparator()
     .addItem('Apply selected correction', 'canopyMenuApplyCorrection')
     .addItem('Resolve selected membership request…', 'canopyMenuResolveMembership')
+    .addItem('Calendar: create publishing link for selected person', 'canopyMenuPublisherKey')
+    .addItem('Calendar: revoke publishing for selected person', 'canopyMenuRevokePublisher')
     .addSeparator()
     .addItem('Preview selected change set', 'canopyMenuPreviewChangeSet')
     .addItem('Apply selected change set', 'canopyMenuApplyChangeSet')
@@ -2780,6 +2853,23 @@ function canopyMenuResolveMembership() {
   } catch (err) {
     ui.alert('Not changed: ' + err.message);
   }
+}
+
+function canopyMenuPublisherKey() {
+  var ui = SpreadsheetApp.getUi();
+  try {
+    var sel = canopySelected_();
+    if (sel.table !== 'People') throw new Error('Select a person in the People tab (add a row for them first if needed: display_name and private_email).');
+    var store = new SheetStore();
+    var res = Canopy.createPublisherKey(store, canopyCtx_(), canopyActor_(), sel.ids[0]);
+    Canopy.processOutbox(store, canopyCtx_(), canopyMailer_(), {});
+    ui.alert('Publishing link for ' + res.person + ' (copy it now — it is not stored and cannot be shown again):\n\n' + res.link + '\n\nIt was also emailed to them if live sending is on. Any previous link for this person no longer works.');
+  } catch (err) {
+    ui.alert('Not created: ' + err.message);
+  }
+}
+function canopyMenuRevokePublisher() {
+  canopyBulk_(Canopy.revokePublisher, 'Publishing revoked');
 }
 
 function canopyChangeSetSelected_() {
@@ -2905,6 +2995,8 @@ var CANOPY_DROPDOWNS = {
   progress: ['open', 'in_progress', 'done', 'dropped', 'closed'],
   state: ['interested', 'acknowledged', 'active', 'waitlisted', 'declined', 'withdrawn', 'open', 'resolved', 'pending', 'previewed', 'applied', 'invalid', 'rejected'],
   directory_consent: ['yes', 'no'],
+  trusted_publisher: ['yes', 'no'],
+  category: Canopy.CATEGORIES,
   contact_publish_consent: ['yes', 'no'],
   updates_consent: ['yes', 'no'],
   publish_consent: ['yes', 'no'],
