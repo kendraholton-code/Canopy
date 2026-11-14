@@ -11,7 +11,7 @@ This takes about 45–60 minutes, done once by a technical helper. Nothing here 
 | Up to 10 working-group room links | Groups → `meet_url` | Pending (test them first, see below) |
 | Ava's Google Form URL and ID (optional) | Settings → `ORG_FORM_URL`, `ORG_FORM_ID` | **Pending** |
 | Names and emails for steward roles | Roles tab | **Coalition decision** |
-| Public site address, e.g. `https://canopy.decarbondekalb.org` | Settings → `SITE_URL` | Pending |
+| Public site address, e.g. `https://canopy.decarbondekalb.com` | Settings → `SITE_URL` | Pending |
 
 Every placeholder is an empty cell, and the site handles empty cells honestly. For example, a missing Meet link shows "Join link coming soon".
 
@@ -44,14 +44,14 @@ In `site/js/config.js`, set `API_URL: 'https://script.google.com/macros/s/…/ex
 
 **Cloudflare Pages** (works with private repositories): create a project from the repo, leave the build command empty, and set the output directory to `site`.
 
-Then add a custom domain such as `canopy.decarbondekalb.org`.
+Then add a custom domain such as `canopy.decarbondekalb.com`.
 
 ## 5. Connect Squarespace
 
-1. In Squarespace: **Domains → decarbondekalb.org → DNS → Custom records**. Add a `CNAME` record with host `canopy` and data `<your-account>.github.io` (or the Cloudflare Pages target).
-2. Add a navigation link, "Canopy", to `https://canopy.decarbondekalb.org`.
+1. In Squarespace: **Domains → decarbondekalb.com → DNS → Custom records**. Add a `CNAME` record with host `canopy` and data `<your-account>.github.io` (or the Cloudflare Pages target).
+2. Add a navigation link, "Canopy", to `https://canopy.decarbondekalb.com`.
 3. Optional embed (needs a plan that allows iframes in Code blocks):
-   `<iframe src="https://canopy.decarbondekalb.org/#/calendar" title="Canopy community calendar" style="width:100%;height:900px;border:0"></iframe>`.
+   `<iframe src="https://canopy.decarbondekalb.com/#/calendar" title="Canopy community calendar" style="width:100%;height:900px;border:0"></iframe>`.
    Keep the plain link as well, in case the embed fails.
 
 ## 6. Fill in Settings and Roles

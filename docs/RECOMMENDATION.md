@@ -4,7 +4,7 @@
 
 ## In one paragraph
 
-The private records live in one **Google Sheet**, "Canopy Admin". It's owned by a DeCarbon (or coalition) Google Workspace account, and two or more named stewards can edit it. A small **Google Apps Script** program attached to that Sheet is the engine. It receives the website's forms, saves each one before doing anything else, routes notifications by email, and publishes *only approved, allowlisted fields* as public data. The **public website** is a set of plain static files with no build step and no third-party code. They're hosted free on GitHub Pages or Cloudflare Pages at a subdomain such as `canopy.decarbondekalb.org`, which you set up with one DNS record in Squarespace. Squarespace keeps the main website and links to Canopy. It never runs the backend.
+The private records live in one **Google Sheet**, "Canopy Admin". It's owned by a DeCarbon (or coalition) Google Workspace account, and two or more named stewards can edit it. A small **Google Apps Script** program attached to that Sheet is the engine. It receives the website's forms, saves each one before doing anything else, routes notifications by email, and publishes *only approved, allowlisted fields* as public data. The **public website** is a set of plain static files with no build step and no third-party code. They're hosted free on GitHub Pages or Cloudflare Pages at a subdomain such as `canopy.decarbondekalb.com`, which you set up with one DNS record in Squarespace. Squarespace keeps the main website and links to Canopy. It never runs the backend.
 
 ## Why this design
 
@@ -34,7 +34,7 @@ The private records live in one **Google Sheet**, "Canopy Admin". It's owned by 
 
 | Item | Cost | Owner (recommended) |
 |---|---|---|
-| Google Workspace account (Sheet, Apps Script, Gmail sending, Meet) | Already paid by DeCarbon | A shared role account, e.g. `canopy@decarbondekalb.org`, **not** a personal one |
+| Google Workspace account (Sheet, Apps Script, Gmail sending, Meet) | Already paid by DeCarbon | A shared role account, e.g. `canopy@decarbondekalb.com`, **not** a personal one |
 | Static hosting (GitHub Pages / Cloudflare Pages) | $0 | GitHub organization or Cloudflare account held by DeCarbon or the coalition, with 2 admins |
 | DNS record in Squarespace | $0 (existing domain) | DeCarbon's Squarespace admin |
 | Apps Script quotas | $0 | Google lists 1,500 email recipients a day for paid Workspace accounts and 100 a day for consumer accounts. Canopy should need well under 50 |

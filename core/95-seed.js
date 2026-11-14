@@ -13,7 +13,7 @@
   C.DEFAULT_SETTINGS = [
     ['SITE_NAME', 'Canopy', 'Public name (pending coalition approval).'],
     ['SITE_TAGLINE', 'Second Saturdays for a More Sustainable DeKalb County, Illinois', 'Public tagline (pending coalition approval).'],
-    ['SITE_URL', '', 'Public site address, e.g. https://canopy.decarbondekalb.org — used in email links. PLACEHOLDER.'],
+    ['SITE_URL', '', 'Public site address, e.g. https://canopy.decarbondekalb.com — used in email links. PLACEHOLDER.'],
     ['MAIN_MEET_URL', '', 'The same Google Meet link every month. Empty = site shows “Link coming soon”. PLACEHOLDER.'],
     ['ORG_FORM_URL', '', 'Ava’s existing Google Form (optional). Empty = site uses its built-in form only. PLACEHOLDER.'],
     ['FORM_MAPPING', '', 'Optional JSON mapping our fields to the Google Form question titles.'],
